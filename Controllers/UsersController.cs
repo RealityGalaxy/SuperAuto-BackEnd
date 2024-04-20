@@ -64,6 +64,10 @@ namespace WebApi.Controllers
                 Username = user.Username,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
+                Balance = user.Balance,
+                Creation_Date = user.Creation_Date,
+                Email = user.Email,
+                Type = user.Type,
                 Token = tokenString
             });
         }

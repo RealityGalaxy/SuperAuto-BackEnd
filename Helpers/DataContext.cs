@@ -20,5 +20,14 @@ namespace WebApi.Helpers
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<Car> Cars { get; set; }
+        public DbSet<Bill> Bills { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<Post> Posts { get; set; }
+        public DbSet<RentAd> Rent_Ads { get; set; }
+        public DbSet<SaleAd> Sale_Ads { get; set; }
+        public DbSet<Request> Requests { get; set; }
+        public DbSet<Ticket> Tickets { get; set; }
+        public DbSet<TicketAnswer> Ticket_Answers { get; set; }
     }
 }

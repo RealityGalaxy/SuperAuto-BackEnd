@@ -1,3 +1,5 @@
+using SendGrid.Helpers.Mail;
+using SendGrid;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,8 +42,35 @@ namespace WebApi.Services
             if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
                 return null;
 
+            CloseAllExpired();
+
             // authentication successful
             return user;
+        }
+
+        public void CloseAllExpired()
+        {
+            List<Ticket> tickets = new List<Ticket>(_context.Tickets);
+            foreach (Ticket ticket in tickets)
+            {
+                if (ticket.Status != "closed" && ticket.Last_Answered_Date.AddDays(7) < DateTime.Now)
+                {
+                    User owner = GetById(ticket.Author);
+                    ticket.Status = "closed";
+                    _context.Tickets.Update(ticket);
+
+                    var apiKey = "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";
+                    var client = new SendGridClient(apiKey);
+                    var from = new EmailAddress("tocelisovidijus@gmail.com", "SuperAuto.pl");
+                    var subject = "Jusu bilietas automatiskai uzdarytas - " + ticket.Title;
+                    var to = new EmailAddress(owner.Email, "Atsakymo gavejas");
+                    var plainTextContent = "Kadangi neatsakete i bilieta ilgiau nei savaite, jusu bilietas buvo automatiskai uzdarytas. Jeigu reikia papildomos pagalbos, prasome pateikti dar viena bilieta.";
+                    var htmlContent = "<p>Kadangi neatsakete i bilieta ilgiau nei savaite, jusu bilietas buvo automatiskai uzdarytas. Jeigu reikia papildomos pagalbos, prasome pateikti dar viena bilieta.<p>";
+                    var msg = MailHelper.CreateSingleEmail(from, to, subject, plainTextContent, htmlContent);
+                    client.SendEmailAsync(msg);
+                }
+            }
+            _context.SaveChanges();
         }
 
         public IEnumerable<User> GetAll()
@@ -69,6 +98,9 @@ namespace WebApi.Services
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;
 
+            user.Type = "standard";
+            user.Creation_Date = DateTime.Now;
+
             _context.Users.Add(user);
             _context.SaveChanges();
 
@@ -93,21 +125,18 @@ namespace WebApi.Services
             }
 
             // update user properties if provided
-            if (!string.IsNullOrWhiteSpace(userParam.FirstName))
+            if (!string.IsNullOrWhiteSpace(userParam.FirstName) && userParam.FirstName != user.FirstName)
                 user.FirstName = userParam.FirstName;
 
-            if (!string.IsNullOrWhiteSpace(userParam.LastName))
+            if (!string.IsNullOrWhiteSpace(userParam.LastName) && userParam.LastName != user.LastName)
                 user.LastName = userParam.LastName;
 
-            // update password if provided
-            if (!string.IsNullOrWhiteSpace(password))
-            {
-                byte[] passwordHash, passwordSalt;
-                CreatePasswordHash(password, out passwordHash, out passwordSalt);
+            if (!string.IsNullOrWhiteSpace(userParam.Email) && userParam.Email != user.Email)
+                user.Email = userParam.Email;
 
-                user.PasswordHash = passwordHash;
-                user.PasswordSalt = passwordSalt;
-            }
+            //update balance
+            if (userParam.Balance != user.Balance)
+                user.Balance = userParam.Balance;
 
             _context.Users.Update(user);
             _context.SaveChanges();
